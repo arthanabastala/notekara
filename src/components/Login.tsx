@@ -26,7 +26,13 @@ export function Login({ onLogin }: LoginProps) {
         body: JSON.stringify({ username, password }),
       });
 
-      const data = await response.json();
+      let data;
+      const text = await response.text();
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        throw new Error(`Server returned an error: ${text.substring(0, 50)}...`);
+      }
 
       if (!response.ok) {
         throw new Error(data.error || "An error occurred");

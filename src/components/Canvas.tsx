@@ -25,11 +25,18 @@ export function Canvas({ username, onLogout }: CanvasProps) {
         const response = await fetch(`${API_BASE_URL}/notes`, {
           headers: getAuthHeaders(),
         });
+        const text = await response.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          throw new Error(`Invalid response from server: ${text.substring(0, 50)}...`);
+        }
+        
         if (!response.ok) {
-          const data = await response.json().catch(() => ({}));
           throw new Error(data.error || "Failed to fetch notes");
         }
-        const data = await response.json();
+        
         setElements(data.elements || []);
       } catch (err: any) {
         setError(err.message);
@@ -70,7 +77,8 @@ export function Canvas({ username, onLogout }: CanvasProps) {
               errorMessage = `Server Error (${response.status}): ${text.substring(0, 50)}...`;
             }
           }
-          throw new Error(errorMessage);
+          setError("Save failed: " + errorMessage);
+          return;
         }
       } catch (err: any) {
         setError("Save failed: " + err.message);

@@ -100,24 +100,34 @@ export function CanvasElement({ element, onUpdate, onDelete, onBringForward, onS
           const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
           const data = imageData.data;
           
-          // Get the top-left pixel as the background color
-          const bgR = data[0];
-          const bgG = data[1];
-          const bgB = data[2];
-          const tolerance = 35; // Tolerance for color variation
+          // Determine background color by checking corners
+          const corners = [
+            0, // top-left
+            (width - 1) * 4, // top-right
+            (height - 1) * width * 4, // bottom-left
+            ((height - 1) * width + (width - 1)) * 4 // bottom-right
+          ];
+
+          let bgR = 255, bgG = 255, bgB = 255; // Default white
+          for (let corner of corners) {
+            if (data[corner + 3] > 0) { // If not transparent
+              bgR = data[corner];
+              bgG = data[corner + 1];
+              bgB = data[corner + 2];
+              break;
+            }
+          }
+          
+          const tolerance = 45; // slightly higher tolerance
           
           for (let i = 0; i < data.length; i += 4) {
             const r = data[i];
             const g = data[i + 1];
             const b = data[i + 2];
+            const a = data[i + 3];
             
-            // Remove pixels that loosely match the background color
-            if (
-              Math.abs(r - bgR) < tolerance && 
-              Math.abs(g - bgG) < tolerance && 
-              Math.abs(b - bgB) < tolerance
-            ) {
-              data[i + 3] = 0;
+            if (a > 0 && Math.abs(r - bgR) < tolerance && Math.abs(g - bgG) < tolerance && Math.abs(b - bgB) < tolerance) {
+              data[i + 3] = 0; // make transparent
             }
           }
           
