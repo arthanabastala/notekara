@@ -10,15 +10,6 @@ const PORT = 3000;
 
 app.use(express.json({ limit: "50mb" })); // Increase limit for Base64 images
 
-// Handle JSON parsing errors
-app.use((err: any, req: any, res: any, next: any) => {
-  if (err instanceof SyntaxError && "status" in err && err.status === 400 && "body" in err) {
-    console.error("Bad JSON body from client:", err.message);
-    return res.status(400).json({ error: "Invalid request payload format" });
-  }
-  next(err);
-});
-
 // --- MongoDB Schemas & Models ---
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
@@ -162,11 +153,6 @@ apiRouter.post("/notes", authenticateToken, async (req: any, res: any) => {
 });
 
 app.use("/api", apiRouter);
-
-// Fallback for API routes to prevent HTML response
-app.use("/api", (req, res) => {
-  res.status(404).json({ error: "API endpoint not found" });
-});
 
 // --- Vite Middleware & Fallback ---
 async function startServer() {

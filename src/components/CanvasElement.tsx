@@ -77,57 +77,33 @@ export function CanvasElement({ element, onUpdate, onDelete, onBringForward, onS
       const newContent = await new Promise<string>((resolve, reject) => {
         img.onload = () => {
           const canvas = document.createElement("canvas");
-          const MAX_SIZE = 800;
-          let width = img.width;
-          let height = img.height;
-
-          if (width > MAX_SIZE || height > MAX_SIZE) {
-            if (width > height) {
-              height = (height / width) * MAX_SIZE;
-              width = MAX_SIZE;
-            } else {
-              width = (width / height) * MAX_SIZE;
-              height = MAX_SIZE;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
+          canvas.width = img.width;
+          canvas.height = img.height;
           const ctx = canvas.getContext("2d");
           if (!ctx) return reject("No context");
           
-          ctx.drawImage(img, 0, 0, width, height);
+          ctx.drawImage(img, 0, 0);
           const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
           const data = imageData.data;
           
-          // Determine background color by checking corners
-          const corners = [
-            0, // top-left
-            (width - 1) * 4, // top-right
-            (height - 1) * width * 4, // bottom-left
-            ((height - 1) * width + (width - 1)) * 4 // bottom-right
-          ];
-
-          let bgR = 255, bgG = 255, bgB = 255; // Default white
-          for (let corner of corners) {
-            if (data[corner + 3] > 0) { // If not transparent
-              bgR = data[corner];
-              bgG = data[corner + 1];
-              bgB = data[corner + 2];
-              break;
-            }
-          }
-          
-          const tolerance = 45; // slightly higher tolerance
+          // Get the top-left pixel as the background color
+          const bgR = data[0];
+          const bgG = data[1];
+          const bgB = data[2];
+          const tolerance = 35; // Tolerance for color variation
           
           for (let i = 0; i < data.length; i += 4) {
             const r = data[i];
             const g = data[i + 1];
             const b = data[i + 2];
-            const a = data[i + 3];
             
-            if (a > 0 && Math.abs(r - bgR) < tolerance && Math.abs(g - bgG) < tolerance && Math.abs(b - bgB) < tolerance) {
-              data[i + 3] = 0; // make transparent
+            // Remove pixels that loosely match the background color
+            if (
+              Math.abs(r - bgR) < tolerance && 
+              Math.abs(g - bgG) < tolerance && 
+              Math.abs(b - bgB) < tolerance
+            ) {
+              data[i + 3] = 0;
             }
           }
           
