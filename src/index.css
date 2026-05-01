@@ -1,0 +1,54 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Caveat:wght@400;500;600;700&display=swap');
+@import url('https://fonts.cdnfonts.com/css/high-spirited');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Playfair Display", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-high-spirited: "High Spirited", "Caveat", cursive;
+}
+
+body {
+  background-color: #0A0A0A;
+  color: white;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.canvas-grid {
+  background-color: #111;
+  background-image: radial-gradient(#333 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.bold-title {
+  font-family: var(--font-sans);
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  line-height: 0.8;
+}
+
+.serif-italic {
+  font-family: var(--font-serif);
+  font-style: italic;
+}
+
+.element-shadow {
+  box-shadow: 10px 10px 0px 0px rgba(0,0,0,1);
+}
+
+.node-card {
+  border: 2px solid #000;
+  transition: transform 0.1s ease;
+}
+
+.resize-handle {
+  width: 10px;
+  height: 10px;
+  background: #000;
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  cursor: nwse-resize;
+}

@@ -1,0 +1,6 @@
+{
+  "name": "KaramelNote",
+  "description": "A fullstack, flexible note-taking whiteboard where you can drag, drop, and resize text and images.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
