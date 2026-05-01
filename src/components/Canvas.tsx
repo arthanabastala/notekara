@@ -58,8 +58,19 @@ export function Canvas({ username, onLogout }: CanvasProps) {
           body: JSON.stringify({ elements: newElements }),
         });
         if (!response.ok) {
-          const data = await response.json().catch(() => ({}));
-          throw new Error(data.error || "Failed to save notes");
+          const text = await response.text();
+          let errorMessage = "Failed to save notes";
+          try {
+            const data = JSON.parse(text);
+            errorMessage = data.error || errorMessage;
+          } catch (e) {
+            if (response.status === 413 || text.includes("Entity Too Large") || text.includes("Too Large")) {
+              errorMessage = "Image or note is too large to save (max 1MB). Please use a smaller image.";
+            } else {
+              errorMessage = `Server Error (${response.status}): ${text.substring(0, 50)}...`;
+            }
+          }
+          throw new Error(errorMessage);
         }
       } catch (err: any) {
         setError("Save failed: " + err.message);
@@ -86,18 +97,61 @@ export function Canvas({ username, onLogout }: CanvasProps) {
     triggerAutoSave(updated);
   };
 
-  const addImageElement = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const MAX_SIZE = 800; // compress to max 800px width/height
+          let width = img.width;
+          let height = img.height;
+
+          if (width > MAX_SIZE || height > MAX_SIZE) {
+            if (width > height) {
+              height = (height / width) * MAX_SIZE;
+              width = MAX_SIZE;
+            } else {
+              width = (width / height) * MAX_SIZE;
+              height = MAX_SIZE;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return reject("No context");
+          
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          let quality = 0.8;
+          let mimeType = file.type === "image/png" ? "image/png" : "image/jpeg";
+          if (file.type === "image/webp") mimeType = "image/webp";
+          
+          const dataUrl = canvas.toDataURL(mimeType, quality);
+          resolve(dataUrl);
+        };
+        img.onerror = reject;
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const addImageElement = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
-      setError("File size should be less than 5MB");
+    if (file.size > 10 * 1024 * 1024) { // 10MB upload limit
+      setError("File size should be less than 10MB");
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64Content = event.target?.result as string;
+    try {
+      setIsLoading(true);
+      const base64Content = await compressImage(file);
       const maxZIndex = Math.max(...elements.map(e => e.zIndex || 1), 0);
       const newElement: NoteElement = {
         id: Date.now().toString(),
@@ -112,8 +166,12 @@ export function Canvas({ username, onLogout }: CanvasProps) {
       const updated = [...elements, newElement];
       setElements(updated);
       triggerAutoSave(updated);
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to process image");
+    } finally {
+      setIsLoading(false);
+    }
     
     // reset file input
     if (fileInputRef.current) {
@@ -121,18 +179,19 @@ export function Canvas({ username, onLogout }: CanvasProps) {
     }
   };
 
-  const addStickerElement = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const addStickerElement = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
-      setError("File size should be less than 5MB");
+    if (file.size > 10 * 1024 * 1024) { // 10MB upload limit
+      setError("File size should be less than 10MB");
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64Content = event.target?.result as string;
+    try {
+      setIsLoading(true);
+      // For stickers, keep transparency. Usually it's PNG
+      const base64Content = await compressImage(file);
       const maxZIndex = Math.max(...elements.map(e => e.zIndex || 1), 0);
       const newElement: NoteElement = {
         id: Date.now().toString(),
@@ -147,8 +206,12 @@ export function Canvas({ username, onLogout }: CanvasProps) {
       const updated = [...elements, newElement];
       setElements(updated);
       triggerAutoSave(updated);
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to process sticker");
+    } finally {
+      setIsLoading(false);
+    }
     
     // reset file input
     if (stickerInputRef.current) {

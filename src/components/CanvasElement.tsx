@@ -77,12 +77,26 @@ export function CanvasElement({ element, onUpdate, onDelete, onBringForward, onS
       const newContent = await new Promise<string>((resolve, reject) => {
         img.onload = () => {
           const canvas = document.createElement("canvas");
-          canvas.width = img.width;
-          canvas.height = img.height;
+          const MAX_SIZE = 800;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > MAX_SIZE || height > MAX_SIZE) {
+            if (width > height) {
+              height = (height / width) * MAX_SIZE;
+              width = MAX_SIZE;
+            } else {
+              width = (width / height) * MAX_SIZE;
+              height = MAX_SIZE;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
           const ctx = canvas.getContext("2d");
           if (!ctx) return reject("No context");
           
-          ctx.drawImage(img, 0, 0);
+          ctx.drawImage(img, 0, 0, width, height);
           const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
           const data = imageData.data;
           
