@@ -1,36 +1,19 @@
-import dbConnect from "./utils/db";
-import { User } from "./utils/models";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-
 export default async function handler(req: any, res: any) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+  console.log(`[API /api/login] Method: ${req.method} called`);
 
   try {
-    await dbConnect();
-    const { username, password } = req.body;
-    
-    const user = await User.findOne({ username });
-    if (!user) {
-      return res.status(400).json({ error: "Invalid username or password" });
+    if (req.method === "GET") {
+      return res.status(200).json({ message: "API working" });
     }
 
-    const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) {
-      return res.status(400).json({ error: "Invalid username or password" });
+    if (req.method === "POST") {
+      console.log("[API /api/login] Request body:", req.body);
+      return res.status(200).json({ message: "Login endpoint hit" });
     }
 
-    const token = jwt.sign(
-      { userId: user._id, username: user.username },
-      process.env.JWT_SECRET || "fallback-secret",
-      { expiresIn: "24h" }
-    );
-    
-    return res.status(200).json({ token, username: user.username });
-  } catch (error: any) {
-    console.error("Login Error:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(405).json({ error: "Method not allowed" });
+  } catch (error) {
+    console.error("[API /api/login] Error:", error);
+    return res.status(500).json({ error: "A server error occurred" });
   }
 }
